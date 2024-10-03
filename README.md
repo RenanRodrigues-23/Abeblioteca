@@ -1,26 +1,111 @@
-﻿# Abeblioteca
-
 import tkinter as tk
 from tkinter import messagebox
 from PIL import Image, ImageTk
 
-# Nova janela para adicionar livros
+# Classe para o livro
+class Book:
+    def __init__(self, title, author, year):
+        self.title = title
+        self.author = author
+        self.year = year
+
+    def __str__(self):
+        return f"{self.title} - {self.author} ({self.year})"
+
+# Estrutura de um nó da árvore binária de busca
+class Node:
+    def __init__(self, book):
+        self.book = book
+        self.left = None
+        self.right = None
+
+    def __str__(self):
+        return str(self.book)
+
+# Classe da biblioteca, utilizando árvore binária de busca
+class Library:
+    def __init__(self):
+        self.root = None
+
+    def insert(self, book):
+        if self.root is None:
+            self.root = Node(book)
+        else:
+            self._insert(self.root, book)
+
+    def _insert(self, node, book):
+        if book.title < node.book.title:
+            if node.left is None:
+                node.left = Node(book)
+            else:
+                self._insert(node.left, book)
+        elif book.title > node.book.title:
+            if node.right is None:
+                node.right = Node(book)
+            else:
+                self._insert(node.right, book)
+        else:
+            print(f"Livro '{book.title}' já está na biblioteca.")
+
+    def search_by_title(self, title):
+        return self._search_by_title(self.root, title)
+    
+    #Buscando com a arvore:
+
+    def _search_by_title(self, node, title):
+        if node is None:
+            return None
+        if node.book.title == title:
+            return node.book
+        elif title < node.book.title:
+            return self._search_by_title(node.left, title)
+        else:
+            return self._search_by_title(node.right, title)
+        
+    #Indicacao com mesmo autor
+    def search_books_by_author(self, author):
+        result = []
+        self._search_books_by_author(self.root, author, result)
+        return result
+
+    #Buscando autor com arvore 
+    def _search_books_by_author(self, node, author, result):
+        if node is None:
+            return
+        if node.book.author == author:
+            result.append(node.book)
+        if node.left:
+            self._search_books_by_author(node.left, author, result)
+        if node.right:
+            self._search_books_by_author(node.right, author, result)
+
+    def simetric_traversal(self, node=None):
+        if node is None:
+            node = self.root
+        if node.left:
+            self.simetric_traversal(node.left)
+        print(node)
+        if node.right:
+            self.simetric_traversal(node.right)
+
+# Função para abrir nova janela e adicionar livros
 def nova_janela_add():
     add_window = tk.Toplevel()
     add_window.title("Cadastro de Livros")
     add_window.geometry("400x300")
 
     nome_var = tk.StringVar()
-    editora_var = tk.StringVar()
+    autor_var = tk.StringVar()
     ano_var = tk.StringVar()
 
     def obter_texto():
         nome_var.set(entry_nome.get())
-        editora_var.set(entry_editora.get())
+        autor_var.set(entry_autor.get())
         ano_var.set(entry_ano.get())
 
-        if nome_var.get() and editora_var.get() and ano_var.get():
-            lista.adicionar(nome_var.get(), editora_var.get(), ano_var.get())
+        if nome_var.get() and autor_var.get() and ano_var.get():
+            livro = Book(nome_var.get(), autor_var.get(), ano_var.get())
+            biblioteca.insert(livro)
             messagebox.showinfo("Sucesso", "Livro adicionado com sucesso!")
             add_window.destroy()  # Fecha a janela de adição
         else:
@@ -32,10 +117,10 @@ def nova_janela_add():
     entry_nome = tk.Entry(add_window)
     entry_nome.place(x=150, y=30)
 
-    label_editora = tk.Label(add_window, text="Editora:")
-    label_editora.place(x=50, y=70)
-    entry_editora = tk.Entry(add_window)
-    entry_editora.place(x=150, y=70)
+    label_autor = tk.Label(add_window, text="Autor:")
+    label_autor.place(x=50, y=70)
+    entry_autor = tk.Entry(add_window)
+    entry_autor.place(x=150, y=70)
 
     label_ano = tk.Label(add_window, text="Ano:")
     label_ano.place(x=50, y=110)
@@ -46,118 +131,85 @@ def nova_janela_add():
     button = tk.Button(add_window, text="Enviar", command=obter_texto)
     button.place(x=150, y=150)
 
-# LIVRO AQUI
-class Livro:
-    def __init__(self, nome, editora, ano):
-        self.nome = nome
-        self.editora = editora
-        self.ano = ano
+# Função para abrir nova janela de busca de livros por nome
+def nova_janela_buscar():
+    buscar_window = tk.Toplevel()
+    buscar_window.title("Buscar Livro por Nome")
+    buscar_window.geometry("400x300")
 
-    def __str__(self):
-        return f"{self.nome} - {self.editora} ({self.ano})"
+    nome_var = tk.StringVar()
 
-# LISTA SEQUENCIAL IMPLEMENTADA
-class ListaSequencial:
-    def __init__(self, capacidade=3):
-        self.capacidade = capacidade
-        self.tamanho = 0
-        self.elementos = [None] * capacidade
+    def buscar_por_nome():
+        nome_var.set(entry_nome.get())
 
-    def adicionar(self, nome, editora, ano):
-        livro = Livro(nome, editora, ano)
-        if self.tamanho == self.capacidade:
-            self.redimensionar()
-        self.elementos[self.tamanho] = livro
-        self.tamanho += 1
-
-    def redimensionar(self):
-        nova_capacidade = self.capacidade * 2
-        novos_elementos = [None] * nova_capacidade
-        for i in range(self.tamanho):
-            novos_elementos[i] = self.elementos[i]
-        self.elementos = novos_elementos
-        self.capacidade = nova_capacidade
-
-    def buscar(self, nome):
-        i = 0
-        for livro in self.elementos:
-            if livro is not None and livro.nome == nome:
-                print(f"\n\nLivro na posicion: {i}\n\n")
-                return livro
-            i += 1
-        print("Livro não encontrado.")
-        return None
-
-    def exibir(self):
-        if self.tamanho == 0:
-            print("Lista vazia")
+        if nome_var.get():
+            livro_encontrado = biblioteca.search_by_title(nome_var.get())
+            if livro_encontrado:
+                livros_mesmo_autor = biblioteca.search_books_by_author(livro_encontrado.author)
+                resultado = "\n".join([str(livro) for livro in livros_mesmo_autor])
+                messagebox.showinfo("Livros do mesmo autor", resultado)
+            else:
+                messagebox.showinfo("Livro não encontrado", "O livro solicitado não foi encontrado.")
+            buscar_window.destroy()
         else:
-            for i in range(self.tamanho):
-                print(self.elementos[i], end="\n")
-            print()
-    def order (self):
-        lista = [livro for livro in self.elementos if livro is not None]
-        for j in range(len(lista), 0, -1):
-            for i in range(j - 1):
-                if lista[i].nome > lista[i + 1].nome:  # Ordena pelo nome do livro
-                    x = lista[i]
-                    lista[i] = lista[i + 1]
-                    lista[i + 1] = x
+            messagebox.showwarning("Atenção", "O campo nome deve ser preenchido.")
 
-        # Atualiza a lista original
-        self.elementos[:len(lista)] = lista
-        self.tamanho = len(lista)  # Atualiza o tamanho da lista
-# Aqui a lista para usar
-lista = ListaSequencial()
+    # Labels e entrada para buscar o livro
+    label_nome = tk.Label(buscar_window, text="Nome do Livro:")
+    label_nome.place(x=50, y=30)
+    entry_nome = tk.Entry(buscar_window)
+    entry_nome.place(x=150, y=30)
 
-#------------------------------Interface----------------------------------------
-# MEU PRINCIPAL DO ABEBLIOTECA
+    # Criando um botão para buscar
+    button = tk.Button(buscar_window, text="Buscar", command=buscar_por_nome)
+    button.place(x=150, y=70)
+
+# Função para exibir todos os livros
+def exibir_livros():
+    print("\nLivros na biblioteca (em ordem alfabética):")
+    biblioteca.simetric_traversal()
+
+# Criar a instância da biblioteca (árvore binária de busca)
+biblioteca = Library()
+
+# Interface gráfica com Tkinter
 app = tk.Tk()
 app.title("Menu")
 app.geometry("573x322")
 app.resizable(False, False)
 
+# Adiciona uma imagem de fundo
 imagem_fundo = Image.open(r"C:\Users\renan\OneDrive\Desktop\Programação\FACISA\ALGORITMOS DE APOIO À PESQUISA OPERACIONAL\Abeblioteca\Tela Inicial.png")
 app.imagem_fundo = ImageTk.PhotoImage(imagem_fundo)
 
-# GERAR O CANVA
+# Criar o canvas para imagem de fundo
 canvas = tk.Canvas(app, width=573, height=322)
 canvas.pack(fill="both", expand=True)
 canvas.create_image(0, 0, image=app.imagem_fundo, anchor="nw")
 
-# Função para detectar o clique nos falsos botões
+# Função para detectar cliques nos botões da interface
 def on_click(event):
     x, y = event.x, event.y  # Coordenadas do clique
 
-    # Tamanho do botão
+    # Dimensões dos "botões"
     W = 118
     H = 25
 
-    # Define as coordenadas e dimensões das áreas de clique
+    # Define as coordenadas das áreas clicáveis
     add_area = (427, 159, 427 + W, 159 + H)
     list_area = (427, 191, 427 + W, 191 + H)
-    order_area = (427, 222, 427 + W, 222 + H)
     search_area = (427, 256, 427 + W, 256 + H)
 
-    # Condiciona a área ao clique da função
+    # Verifica onde o clique ocorreu e executa a ação correspondente
     if add_area[0] <= x <= add_area[2] and add_area[1] <= y <= add_area[3]:
-        nova_janela_add()  
-
+        nova_janela_add()  # Adicionar livro
     elif list_area[0] <= x <= list_area[2] and list_area[1] <= y <= list_area[3]:
-        lista.exibir()
-
-    elif order_area[0] <= x <= order_area[2] and order_area[1] <= y <= order_area[3]:
-        lista.order()  # falta implementar
-
+        exibir_livros()  # Exibir todos os livros
     elif search_area[0] <= x <= search_area[2] and search_area[1] <= y <= search_area[3]:
-        
-        livro_a_buscar = input("Nome do livro")
-        lista.buscar(livro_a_buscar)  
+        nova_janela_buscar()  # Buscar livro por nome
 
-# Vincula o evento de clique à tela
+# Vincula o evento de clique ao canvas
 canvas.bind("<Button-1>", on_click)
 
-# Inicia o loop principal da interface
+# Inicia o loop principal da interface gráfica
 app.mainloop()
-
-print(lista)
